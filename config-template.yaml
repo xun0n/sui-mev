@@ -1,0 +1,281 @@
+# Sui MEV Bot Configuration Template
+
+# fetched pools metadata path
+pool-dir: /path/to/pool
+
+# operator wallet secret key
+operators:
+  # name: secret key
+  operator1: /path/to/operator1/secret.key
+  operator2: /path/to/operator2/secret.key
+  # ...
+
+# trading strategies
+strategies:
+  - name: strategy1
+    # operator to use for this strategy, must match one of the operators above
+    operator: operator1
+    # # optional, recipient address for the strategy, where profits will be sent, if not specified, it will use the operator's address
+    # recipient: 0x1234567890abcdef1234567890abcdef12345678
+
+    # `pools` is a filter that selects which pools to trade on, we define its
+    pools:
+      # filter type: all, any, none, not, address, coin, coins, dex
+      # `all, any, none` has same structure as `an array of pools`
+      # `not` has same structure as `pools`
+      # `address is an array of `pool address` strings, e.g. [0x1234...abcd, 0x5678...fecd]
+      # `coin` is a single coin type, e.g. 0x2::sui::SUI
+      # `coins` is an array of coin types, e.g. [0x2::sui::SUI, 0x2::sui::USDC]
+      # `dex` is an array of dex names, e.g. ["Cetus", "Bluefin", "Momentum", "FlowX V3", "Turbos","Haedal HMM", "Haedal LSD"]
+
+      # i.e. matching any of sui's pools
+      # type: any
+      # value:
+      #   - type: coin
+      #     value: 0x2::sui::SUI
+
+      # i.e matching SUI/USDC pools of Cetus or Bluefin
+      # type: all
+      # value:
+      #   - type: coins
+      #     value: ["0x2::sui::SUI", "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC"]
+      #   - type: dex
+      #     value: ["Cetus", "Bluefin"]
+
+      # i.e. matching all pools except SUI/USDC pools of Cetus or Bluefin
+      # type: not
+      # value:
+      #   - type: all
+      #     value:
+      #       - type: coins
+      #         value:
+      #           [
+      #             "0x2::sui::SUI",
+      #             "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC",
+      #           ]
+      #       - type: dex
+      #         value: ["Cetus", "Bluefin"]
+
+      # i.e. matching all pools of pools-dir
+      # because `0x2::sui00::SUI0` is not a valid coin type, and using `not` filter selects all pools
+      type: not
+      value:
+        - type: coin
+          value: 0x2::sui00::SUI0
+
+    # optional, to specify a route filter for this strategy
+    # route-filter:
+    #   # filter type: all, any, none, not, address, coin, coins, dex, index, hop, hops
+    #   # `all, any, none` has same structure as `an array of route-filter`
+    #   # `not` has same structure as `route-filter`
+    #   # `address` is an array of `pool address` strings, e.g. [0x1234...abcd, 0x5678...fecd]
+    #   # `coin` is a single coin type, e.g. 0x2::sui::SUI
+    #   # `coins` is an array of coin types, e.g. [0x2::sui::SUI, 0x2::sui::USDC]
+    #   # `dex` is an array of dex names, e.g. ["Cetus", "Bluefin", "Momentum", "FlowX V3", "Turbos","Haedal HMM", "Haedal LSD"]
+    #   # `index` like {index: int, filter: route-filter}
+    #   # `hop` is a integer,
+    #   # `hops` is an array of `hop` integers
+
+    #   # i.e. matching the second pool which is a SUI/USDC pool of Cetus or Bluefin
+    #   type: index
+    #   value:
+    #     index: 1
+    #     filter:
+    #       type: all
+    #       value:
+    #         - type: coins
+    #           value:
+    #             [
+    #               "0x2::sui::SUI",
+    #               "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC",
+    #             ]
+    #         - type: dex
+    #           value: ["Cetus", "Bluefin"]
+
+    # # optional, use a specific route-slice for this strategy, avoiding too many routes which can cause high memory usage or slow down the bot
+    # # i.e. 0:80000, slice 0 from 0 to 80000
+    # # i.e. 1:80000, slice 1 from 80000
+    # # i.e. 500:+1000, slice 500 from 1500
+    # route-slice: 0:80000
+
+    # # optional, to specify a target coin for this strategy, if not specified, it will use the SUI coin
+    # # only supported coin type is SUI or USDC
+    # target-coin: 0x2::sui::SUI
+
+    # # optional, to specify the target coin decimals for this strategy
+    # target-coin-decimals: 9
+
+    # to specify the minimum profit for this strategy
+    min-profit: 0.1
+
+    # # optional, to specify delay before submitting a transaction, in milliseconds
+    # sumbit-delay: 1
+
+    # optional, to specify the maximum number of hops for this strategy
+    # # if not specified, it will use the default value of 3
+    max-hops: 3
+
+    # # optional, to specify the time of channel message delay tolerance for this strategy, in milliseconds
+    # # if not specified, it will use the default value of infinity
+    # # avoiding too high value can cause the bot to miss profitable opportunities
+    network-delay-tolerance: 100
+
+    # # optional, to specify the find opportunities cost delay tolerance for this strategy, in milliseconds
+    # # if not specified, it will use the default value of infinity
+    # cost-delay-tolerance: 20
+
+    # gas for submitting transactions
+    gas-config:
+      # type: fixed, dynamic, or threshold
+
+      # # i.e. fixed gas price
+      # type: fixed
+      # value:
+      #   gas-budget: 0.05
+      #   gas-price: 800
+
+      # # i.e. dynamic gas price
+      # type: dynamic
+      # value:
+      #   min-gas-price: 800
+      #   max-gas-price: 2000
+      #   min-gas-budget: 0.05
+      #   max-gas-budget: 0.1
+
+      # i.e. threshold gas price
+      # when the profit is below a certain threshold, the gas price and budget will be adjusted accordingly
+      type: threshold
+      value:
+        # when the profit is below 0.1, use gas-budget 0.02 and gas-price 2102
+        - threshold: 0.1
+          gas-budget: 0.02
+          gas-price: 2102
+        # when the profit is between 0.1 and 0.5, use gas-budget 0.02 and gas-price 2501
+        - threshold: 0.5
+          gas-budget: 0.02
+          gas-price: 2501
+        # when the profit is between 0.5 and 1, use gas-budget 0.03 and gas-price 3201
+        - threshold: 1
+          gas-budget: 0.03
+          gas-price: 3201
+        # when the profit is between 1 and 5, use gas-budget 0.04 and gas-price 4201
+        - threshold: 5
+          gas-budget: 0.04
+          gas-price: 4201
+        - threshold: 10
+          gas-budget: 0.05
+          gas-price: 5201
+        # when the profit is between 10 and 50, use gas-budget 0.1 and gas-price 6001
+        - threshold: 50
+          gas-budget: 0.1
+          gas-price: 6001
+        # when the profit is between 50 and 100, use gas-budget 0.52 and gas-price 9999
+        - threshold: 100
+          gas-budget: 0.52
+          gas-price: 9999
+        # when the profit is above 100, use gas-budget 0.5 and gas-price 9999, same as the last one
+
+    # to specify the amounts to search for this strategy
+    # the bot will search for opportunities within these amounts
+    # must be an sorted array of integers
+    search-amounts: [1, 100, 1000, 10000, 100000, 1000000]
+
+    route-chunk-size: 120
+
+    # optional, avoiding submitting transactions that are too similar to each other
+    # this can help to avoid too many transactions that are too similar, which can cause high gas costs
+    # if not specified, it will use the default value of `false`
+    strict-mode: true
+
+    # optional, to specify the search parallel configuration for this strategy
+    # this can help to improve the performance of the bot by searching for opportunities in parallel
+    search-parallel:
+      min-route-len: 10
+      chunk: 1
+
+  # - name: strategy2
+  # ...
+
+
+# # optional, to specify the metrics for prometheus
+# metrics:
+#   address: 127.0.0.0:7513
+
+# # optional
+# tty:
+#   strategy: strategy1
+
+# rpc configuration
+# the bot will use these RPCs to fetch pools and submit transactions
+# must has at least one `fetcher` RPC and one `transaction` RPC and one `rpc` RPC
+rpc:
+  - url: "http://127.0.0.1:9000"
+    # type can be `fetcher`, `transaction`, `event`, `rpc`
+    # `fetcher` is used to fetch pools metadata, usually using local nodes or fast RPCs
+    # `transaction` is used to submit transactions, submitting transactions to them
+    # `event` is used to listen to events, such as new pools or transactions
+    # `rpc` is used to fetch coins and other data, usually using official RPCs or which support indexing rpcs
+    type: "fetcher,transaction,event"
+    name: "node-local"
+
+  - url: "https://fullnode.mainnet.sui.io"
+    type: "rpc,transaction"
+    name: "offical-sui"
+
+  # # i.e. using a custom headers for the RPC
+  # - url: "https://other-rpc.example.com"
+  #   type: "rpc,transaction"
+  #   name: "other-rpc"
+  #   headers:
+  #     - Authorization: "Bearer YOUR_API_KEY"
+  #     - Head1: "Value1"
+  #     - Head2: "Value2"
+  #     ... # more headers if needed
+
+# listen to sui blockchain
+# geyser > websocket > http
+stream:
+  # # can be `http`, `websocket`, event rpc,
+  # # event: "http://rpc.example.com"
+  # event: "ws://event-rpc.example.com"
+  geyser:
+    address: "http://127.0.0.1:19000"
+    # # optional, token for geyser authentication
+    # token: "vemius-token your set"
+
+# optional, move call packages
+packages:
+  cetus:
+    address: 0xeba44f35e2ed2c87327deb140ebf65e6d58369c1b19fda38a1d4181287e38f1b
+    module: jk
+    a2b: ca
+    b2a: cb
+    version: 12
+
+  momentum:
+    address: 0xaf490d8271b44f3f1c81f785c7cc303356009288ae38f36d8fd0945e82d686c0
+    module: jk
+    a2b: mma
+    b2a: mmb
+    version: 1.5
+
+  bluefin:
+    address: 0xeba44f35e2ed2c87327deb140ebf65e6d58369c1b19fda38a1d4181287e38f1b
+    module: jk
+    a2b: bfa
+    b2a: bfb
+    version: 8
+
+  turbos:
+    address: 0xeba44f35e2ed2c87327deb140ebf65e6d58369c1b19fda38a1d4181287e38f1b
+    module: jk
+    a2b: ta
+    b2a: tb
+    version: 14
+
+  flowx_v3:
+    address: 0xeba44f35e2ed2c87327deb140ebf65e6d58369c1b19fda38a1d4181287e38f1b
+    module: jk
+    a2b: f3a
+    b2a: f3b
+    version: 5
